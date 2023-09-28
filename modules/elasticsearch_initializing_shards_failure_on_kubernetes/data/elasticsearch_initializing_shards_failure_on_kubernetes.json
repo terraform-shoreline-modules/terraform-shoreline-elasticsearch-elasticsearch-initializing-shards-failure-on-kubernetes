@@ -1,0 +1,158 @@
+{
+  "name": "elasticsearch_initializing_shards_failure_on_kubernetes",
+  "description": "This incident type refers to an issue with initializing shards in Elasticsearch, which can cause problems with accessing and managing data in the system. When this incident occurs, it can impact the overall performance and availability of Elasticsearch, potentially causing downtime or data loss. Immediate action is needed to resolve the issue and prevent any further impact on the system.",
+  "params": [
+    {
+      "name": "MEMORY_THRESHOLD",
+      "value": ""
+    },
+    {
+      "name": "ELASTICSEARCH_POD_NAME",
+      "value": ""
+    },
+    {
+      "name": "NEW_REPLICA_COUNT",
+      "value": ""
+    },
+    {
+      "name": "ELASTICSEARCH_SERVICE",
+      "value": ""
+    },
+    {
+      "name": "DEPLOYMENT_NAME",
+      "value": ""
+    },
+    {
+      "name": "CPU_THRESHOLD",
+      "value": ""
+    },
+    {
+      "name": "K8S_CLUSTER_NAME",
+      "value": ""
+    },
+    {
+      "name": "HOST_NAME",
+      "value": ""
+    },
+    {
+      "name": "NAMESPACE",
+      "value": ""
+    }
+  ],
+  "cells": [
+    {
+      "name": "cell_1",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Elasticsearch Initializing Shards Failure on Kubernetes.\nThis incident type refers to an issue with initializing shards in Elasticsearch, which can cause problems with accessing and managing data in the system. When this incident occurs, it can impact the overall performance and availability of Elasticsearch, potentially causing downtime or data loss. Immediate action is needed to resolve the issue and prevent any further impact on the system."
+    },
+    {
+      "name": "cell_2",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## List all Elasticsearch pods in the current namespace"
+    },
+    {
+      "name": "cell_3",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "pod | k8s_cluster_name=$K8S_CLUSTER_NAME | app='shoreline' | limit=1 | random=1 | `kubectl get pods -l app=elasticsearch`"
+    },
+    {
+      "name": "cell_4",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the logs of a specific Elasticsearch pod for any errors related to shards initialization"
+    },
+    {
+      "name": "cell_5",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "pod | k8s_cluster_name=$K8S_CLUSTER_NAME | app='shoreline' | limit=1 | random=1 | `kubectl logs ${ELASTICSEARCH_POD_NAME} | grep \"initialization failed\"`"
+    },
+    {
+      "name": "cell_6",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the status of Elasticsearch shards initialization using the Elasticsearch API"
+    },
+    {
+      "name": "cell_7",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `curl -sS ${ELASTICSEARCH_SERVICE}:9200/_cluster/health?pretty=true | grep \"initializing_shards\"`"
+    },
+    {
+      "name": "cell_8",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the Elasticsearch cluster status to see if any nodes have been removed or are not responding"
+    },
+    {
+      "name": "cell_9",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `curl -sS ${ELASTICSEARCH_SERVICE}:9200/_cluster/health?pretty=true | grep \"status\"`"
+    },
+    {
+      "name": "cell_10",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the Elasticsearch logs for any errors related to shards initialization or cluster status"
+    },
+    {
+      "name": "cell_11",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "pod | k8s_cluster_name=$K8S_CLUSTER_NAME | app='shoreline' | limit=1 | random=1 | `kubectl logs ${ELASTICSEARCH_POD_NAME} | grep \"shards\" && kubectl logs ${ELASTICSEARCH_POD_NAME} | grep \"cluster\"`"
+    },
+    {
+      "name": "cell_12",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the Kubernetes events related to Elasticsearch pods and services to see if any errors have been reported"
+    },
+    {
+      "name": "cell_13",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "pod | k8s_cluster_name=$K8S_CLUSTER_NAME | app='shoreline' | limit=1 | random=1 | `kubectl get events --sort-by=.metadata.creationTimestamp | grep \"Elasticsearch\"`"
+    },
+    {
+      "name": "cell_14",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Describe the Elasticsearch service to see if it's pointing to the correct pods and endpoints"
+    },
+    {
+      "name": "cell_15",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "pod | k8s_cluster_name=$K8S_CLUSTER_NAME | app='shoreline' | limit=1 | random=1 | `kubectl describe svc ${ELASTICSEARCH_SERVICE}`"
+    },
+    {
+      "name": "cell_16",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the Elasticsearch configuration to see if any changes have been made recently that could affect shards initialization"
+    },
+    {
+      "name": "cell_17",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE | `cat /usr/share/elasticsearch/config/elasticsearch.yml`"
+    },
+    {
+      "name": "cell_18",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check system resources: Elasticsearch relies heavily on system resources such as memory and CPU. If the system is running low on resources, it can impact the initialization of shards. Check the system resource utilization and allocate additional resources as needed."
+    },
+    {
+      "name": "cell_19",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "pod | k8s_cluster_name=$K8S_CLUSTER_NAME | app='shoreline' | random=1 | limit=1 | invoke_system_resource_utilization($MEMORY_THRESHOLD, $ELASTICSEARCH_POD_NAME, $NEW_REPLICA_COUNT, $DEPLOYMENT_NAME, $CPU_THRESHOLD, $NAMESPACE)"
+    }
+  ]
+}
